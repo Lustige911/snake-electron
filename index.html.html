@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake</title>
+    <style>
+        body {
+            background-color: black;
+            overflow: hidden; /* Scrollen deaktivieren */
+        }
+        canvas {
+            border: 1px solid white;
+            display: block;
+            margin: auto;
+        }
+        #Überschrift {
+            color: yellow;
+            font-size: 30px;
+        }
+        #Score {
+            color: cyan;
+        }
+        #meinElement {
+            color: white;
+            text-align: center;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 2em;
+            margin-top: 20px;
+            position: relative;
+            left: 35%;
+            top: 300px;
+        }
+        #shop {
+            color: black;
+            text-align: center;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 2em;
+            margin-top: 20px;
+            position: relative;
+            top: 300px;
+            background-color: cyan;
+        }
+        #godmodeKaufen {
+            background-color: #00FF00;
+            color: black;
+        }
+    </style>
+</head>
+<body>
+    <div id="meinElement" style="display: none;">
+        <button id="godmodeKaufen" onclick="godmodeKaufen()">GODMODE price: 10 coins</button>
+        SHOP!
+    </div>
+    <h1 id="AusgabeFürGodmode"></h1>
+    <button id="shop" onclick="toggle()">Shop</button>
+    <h2 id="Score">Score: 0</h2>
+    <a id="Überschrift"></a>
+    <canvas id="canvas" width="480" height="480"></canvas>
+    <script>
+        let canvas = document.getElementById('canvas');
+        let ctx = canvas.getContext('2d');
+        let godmode = false;
+        let rows = 20;
+        let cols = 20;
+        let snake = [{ x: 9, y: 3 }];
+        let food = { x: 5, y: 5 };
+        let cellWidth = canvas.width / cols;
+        let cellHeight = canvas.height / rows;
+        let direction = 'LEFT';
+        let lastDirection = 'LEFT';
+        let score = 0;
+        let highScore = 0;
+        let godmodeTIMER = 30;
+        let coins = 0;
+        let timer;
+        let slowmotion = false;
+        let speed = 130;
+
+        
+        placeFood();
+        setInterval(gameLoop, speed);
+        setInterval(testGameOver, 100);
+        document.addEventListener('keydown', keyDown);
+        setInterval(scoreAusgabe, 100);
+
+       function draw() {
+    ctx.fillStyle = 'black';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = 'white';
+    snake.forEach(part => add(part.x, part.y));
+
+    // Apfel mit seiner Farbe zeichnen
+    ctx.fillStyle = food.color;
+    add(food.x, food.y);
+
+    function add(x, y) {
+        ctx.fillRect(x * cellWidth, y * cellHeight, cellWidth - 1, cellHeight - 1);
+    }
+}
+
+        function toggle() {
+            const element = document.getElementById("meinElement");
+            element.style.display = element.style.display === "none" ? "block" : "none";
+        }
+
+        function gameLoop() {
+            let head = { x: snake[0].x, y: snake[0].y };
+
+            if (direction === 'LEFT') head.x--;
+            else if (direction === 'UP') head.y--;
+            else if (direction === 'RIGHT') head.x++;
+            else if (direction === 'DOWN') head.y++;
+
+            snake.unshift(head);
+
+            if (snake[0].x === food.x && snake[0].y === food.y) {
+                score++;
+                coins = coins + 0.5;
+                placeFood();
+            } else {
+                snake.pop();
+            }
+
+            draw();
+        }
+
+        function keyDown(e) {
+            if (e.key === 'ArrowUp' && lastDirection !== 'DOWN') direction = 'UP';
+            else if (e.key === 'ArrowDown' && lastDirection !== 'UP') direction = 'DOWN';
+            else if (e.key === 'ArrowRight' && lastDirection !== 'LEFT') direction = 'RIGHT';
+            else if (e.key === 'ArrowLeft' && lastDirection !== 'RIGHT') direction = 'LEFT';
+            lastDirection = direction;
+        }
+
+        function placeFood() {
+    let freePositions = [];
+    for (let x = 0; x < cols; x++) {
+        for (let y = 0; y < rows; y++) {
+            if (!snake.some(part => part.x === x && part.y === y)) {
+                freePositions.push({ x, y });
+            }
+        }
+    }
+    if (freePositions.length > 0) {
+        let pos = freePositions[Math.floor(Math.random() * freePositions.length)] ;
+        // 10% Chance für einen besonderen Apfel
+        let special = Math.random() <0 ;
+       
+        food = {
+           
+
+            x: pos.x,
+            y: pos.y,
+            color: special ? 'red' : 'yellow' // rot für Spezialapfel
+
+        };
+    }
+}
+
+        function testGameOver() {
+            if (!godmode) {
+                if (snake[0].x < 0 || snake[0].x >= cols || snake[0].y < 0 || snake[0].y >= rows) {
+                    resetGame();
+                }
+                for (let i = 1; i < snake.length; i++) {
+                    if (snake[i].x === snake[0].x && snake[i].y === snake[0].y) {
+                        resetGame();
+                        playGameOverSound();
+                    }
+                }
+            }
+        }
+
+        function playGameOverSound() {
+            const sound = new Audio('sounds/gameOver.mp3');
+            sound.play().catch(error => console.error('Audio playback failed:', error));
+        }
+
+        function resetGame() {
+            snake = [{ x: 9, y: 3 }];
+            placeFood();
+            direction = 'LEFT';
+            lastDirection = 'LEFT';
+            score = 0;
+            coins = Math.max(0, coins - 1);
+           
+        }
+
+        function scoreAusgabe() {
+            document.getElementById('Score').innerHTML = `Score: ${score} Highscore: ${highScore} Coins: ${coins}`;
+            if (score > highScore) highScore = score;
+        }
+
+        function godmodeKaufen() {
+            if (coins >= 10 && !godmode) {
+                coins -= 10;
+                godmode = true;
+                godmodeTIMER = 30;
+                alert("GODMODE activated!");
+                godmodeTimer();
+            } else if (coins < 10) {
+                alert("Not enough coins!");
+            } else if (godmode) {
+                alert("GODMODE already activated!");
+            }
+        }
+
+        function godmodeTimer() {
+            timer = setInterval(() => {
+                godmodeTIMER--;
+                if (godmodeTIMER <= 0) {
+                    clearInterval(timer);
+                    godmode = false;
+                    document.getElementById('Überschrift').innerHTML = "GODMODE expired!";
+                    alert("GODMODE expired!");
+                } else {
+                    document.getElementById('Überschrift').innerHTML = `GODMODE active for ${godmodeTIMER} seconds!`;
+                }
+            }, 1000);
+        }
+
+    </script>
+</body>
+</html>
